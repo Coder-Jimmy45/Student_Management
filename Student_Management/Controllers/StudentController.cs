@@ -38,7 +38,7 @@ namespace Student_Management.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, StudentDTOs dto)
         {
-            _logger.LogWarning("Updating student");
+            _logger.LogInformation("Updating student");
             await _service.Update(id, dto);
             return Ok("Updated");
         }
@@ -46,7 +46,7 @@ namespace Student_Management.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            _logger.LogError("Deleting student");
+            _logger.LogInformation("Deleting student");
             await _service.Delete(id);
             return Ok("Deleted");
         }

@@ -22,41 +22,57 @@ namespace Student_Management.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginDTO dto)
         {
-            var username = _config["User:Username"];
-            var password = _config["User:Password"];
-
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            try
             {
-                return StatusCode(500, "Admin credentials are not configured. Use user-secrets or environment variables.");
+                if (dto == null)
+                {
+                    return BadRequest("Login data is required");
+                }
+
+                var username = _config["User:Username"];
+                var password = _config["User:Password"];
+
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+                {
+                    return StatusCode(500, "Admin credentials are not configured");
+                }
+
+                if (dto.Username != username || dto.Password != password)
+                {
+                    return Unauthorized("Invalid credentials");
+                }
+
+                var jwtKey = _config["Jwt:Key"];
+                if (string.IsNullOrEmpty(jwtKey))
+                {
+                    return StatusCode(500, "JWT Key is not configured");
+                }
+
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.Name, dto.Username)
+                };
+
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: _config["Jwt:Issuer"],
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddHours(1),
+                    signingCredentials: creds
+                );
+
+                return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
             }
-
-            if (dto.Username != username || dto.Password != password)
+            catch (ArgumentException)
             {
-                return Unauthorized("Invalid credentials");
+                return BadRequest("Invalid input");
             }
-
-            var jwtKey = _config["Jwt:Key"];
-            if (string.IsNullOrEmpty(jwtKey))
+            catch (Exception)
             {
-                return StatusCode(500, "JWT Key is not configured. Use user-secrets or environment variables.");
+                return StatusCode(500, "An error occurred during login");
             }
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Name, dto.Username)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(1),
-                signingCredentials: creds
-            );
-
-            return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
         }
     }
 }
