@@ -45,8 +45,21 @@ It provides CRUD operations and secure access using JWT Authentication.
 
 POST /api/auth/login
 
+Note: Credentials and JWT secret are not stored in the repository. Configure them using dotnet user-secrets or environment variables before running.
+
+Example (set with dotnet user-secrets in development):
+
+```bash
+dotnet user-secrets set "User:Username" "admin"
+dotnet user-secrets set "User:Password" "<strong-password>"
+dotnet user-secrets set "Jwt:Key" "<your-very-strong-key>"
+```
+
+Then call:
+
 ```json
 {
   "username": "admin",
-  "password": "1234"
+  "password": "<your-password>"
 }
+"}

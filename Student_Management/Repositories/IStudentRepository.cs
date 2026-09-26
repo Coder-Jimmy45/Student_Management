@@ -7,10 +7,10 @@ namespace Student_Management.Repositories
 {
     public interface IStudentRepository
     {
-        Task<List<Students>> GetAll();
-        Task<Students> GetById(int id);
-        Task Add(Students student);
-        Task Update(Students student);
-        Task Delete(Students student);
+        Task<List<Student>> GetAll();
+        Task<Student> GetById(int id);
+        Task Add(Student student);
+        Task Update(Student student);
+        Task Delete(Student student);
     }
 }

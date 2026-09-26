@@ -1,4 +1,4 @@
-﻿using Student_Management.DoTs;
+﻿using Student_Management.DTOs;
 using Student_Management.Models;
 using Student_Management.Repositories;
 
@@ -13,19 +13,19 @@ namespace Student_Management.Services
             _repo = repo;
         }
 
-        public async Task<List<Students>> GetAll()
+        public async Task<List<Student>> GetAll()
         {
             return await _repo.GetAll();
         }
 
-        public async Task<Students> Get(int id)
+        public async Task<Student> Get(int id)
         {
             return await _repo.GetById(id);
         }
 
         public async Task Add(StudentDTOs dto)
         {
-            var student = new Students
+            var student = new Student
             {
                 Name = dto.Name,
                 Email = dto.Email,

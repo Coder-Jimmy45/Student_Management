@@ -10,6 +10,6 @@ namespace Student_Management.Data
         {
         }
 
-        public DbSet<Students> Students { get; set; }
+        public DbSet<Student> Students { get; set; }
     }
 }

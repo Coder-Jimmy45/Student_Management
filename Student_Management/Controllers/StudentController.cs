@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Student_Management.DoTs;
+using Student_Management.DTOs;
 using Student_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Student_Management.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase

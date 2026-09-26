@@ -15,20 +15,30 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // JWT
-var key = builder.Configuration["Jwt:Key"];
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrEmpty(jwtKey))
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = false,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
-    };
-});
+    // JWT key not configured. Authentication middleware will not be registered.
+    // Configure Jwt:Key via user-secrets or environment variables for development/production.
+}
+else
+{
+    var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = false,
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromSeconds(30),
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                IssuerSigningKey = signingKey
+            };
+        });
+}
 
 // Services
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
@@ -80,3 +90,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }
