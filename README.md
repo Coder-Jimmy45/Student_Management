@@ -1,5 +1,7 @@
 # 📘 Student Management API
 
+[![.NET CI/CD](https://github.com/Coder-Jimmy45/Student_Management/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Coder-Jimmy45/Student_Management/actions/workflows/dotnet.yml)
+
 ## 🚀 Overview
 This project is a Student Management System built using ASP.NET Core Web API.
 
@@ -25,6 +27,20 @@ It provides CRUD operations and secure access using JWT Authentication.
 - JWT Authentication
 - Exception Handling Middleware
 - Layered Architecture
+
+---
+
+## 🔄 CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **Automated Builds**: Triggered on push to master and all pull requests
+- **Testing**: Unit tests run automatically with each build
+- **Test Results**: Published as GitHub Checks in pull requests
+- **Artifacts**: Test results and coverage reports stored for analysis
+- **Status Badge**: Real-time build status visible in the README
+
+For detailed CI/CD documentation, see [.github/CI_CD_DOCUMENTATION.md](./.github/CI_CD_DOCUMENTATION.md)
 
 ---
 
