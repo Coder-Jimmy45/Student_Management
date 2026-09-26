@@ -25,25 +25,28 @@ namespace Student_Management.Controllers
             var username = _config["User:Username"];
             var password = _config["User:Password"];
 
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                return StatusCode(500, "Admin credentials are not configured. Use user-secrets or environment variables.");
+            }
+
             if (dto.Username != username || dto.Password != password)
             {
                 return Unauthorized("Invalid credentials");
             }
 
-            var claims = new[]
+            var jwtKey = _config["Jwt:Key"];
+            if (string.IsNullOrEmpty(jwtKey))
             {
-            new Claim(ClaimTypes.Name, dto.Username)
-        };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["Jwt:Key"])
-
-            );
-            if (string.IsNullOrEmpty(_config["Jwt:Key"]))
-            {
-                throw new Exception("JWT Key is missing in appsettings.json");
+                return StatusCode(500, "JWT Key is not configured. Use user-secrets or environment variables.");
             }
 
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, dto.Username)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

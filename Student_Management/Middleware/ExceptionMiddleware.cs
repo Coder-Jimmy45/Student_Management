@@ -22,8 +22,11 @@
             {
                 _logger.LogError(ex, "Error occurred");
 
-                context.Response.StatusCode = 500;
-                await context.Response.WriteAsync(ex.ToString());
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+
+                var problem = new { title = "An unexpected error occurred.", detail = "Internal Server Error" };
+                await context.Response.WriteAsJsonAsync(problem);
             }
         }
     }
