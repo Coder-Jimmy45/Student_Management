@@ -1,52 +1,60 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Student_Management.DoTs;
+using Student_Management.DTOs;
 using Student_Management.Services;
 
-namespace Student_Management.Controllers
+namespace Student_Management.Controllers;
+
+[Authorize (Roles = "User")]
+[ApiController]
+[Route("api/students")]
+public sealed class StudentController(IStudentService service, ILogger<StudentController> logger) : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class StudentController : ControllerBase
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<StudentResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<StudentResponse>>> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        private readonly IStudentService _service;
-        private readonly ILogger<StudentController> _logger;
+        if (page < 1 || pageSize is < 1 or > 100)
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]> { ["pagination"] = ["page must be at least 1 and pageSize must be between 1 and 100."] }));
 
-        public StudentController(IStudentService service, ILogger<StudentController> logger)
-        {
-            _service = service;
-            _logger = logger;
-        }
+        return Ok(await service.GetPageAsync(page, pageSize, cancellationToken));
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            _logger.LogInformation("Getting all students");
-            return Ok(await _service.GetAll());
-        }
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(StudentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StudentResponse>> GetById(int id, CancellationToken cancellationToken) =>
+        Ok(await service.GetByIdAsync(id, cancellationToken));
 
-        [HttpPost]
-        public async Task<IActionResult> Add(StudentDTOs dto)
-        {
-            _logger.LogInformation("Adding student");
-            await _service.Add(dto);
-            return Ok("Student added");
-        }
+    [HttpPost]
+    [ProducesResponseType(typeof(StudentResponse), StatusCodes.Status201Created)]
+    public async Task<ActionResult<StudentResponse>> Create(StudentRequest request, CancellationToken cancellationToken)
+    {
+        var student = await service.CreateAsync(request, cancellationToken);
+        logger.LogInformation("Created student {StudentId}", student.Id);
+        return CreatedAtAction(nameof(GetById), new { student.Id }, student);
+    }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, StudentDTOs dto)
-        {
-            _logger.LogWarning("Updating student");
-            await _service.Update(id, dto);
-            return Ok("Updated");
-        }
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(StudentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StudentResponse>> Update(int id, StudentRequest request, CancellationToken cancellationToken)
+    {
+        var student = await service.UpdateAsync(id, request, cancellationToken);
+        logger.LogInformation("Updated student {StudentId}", student.Id);
+        return Ok(student);
+    }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            _logger.LogError("Deleting student");
-            await _service.Delete(id);
-            return Ok("Deleted");
-        }
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        await service.DeleteAsync(id, cancellationToken);
+        logger.LogInformation("Deleted student {StudentId}", id);
+        return NoContent();
     }
 }

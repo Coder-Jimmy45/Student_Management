@@ -1,15 +1,12 @@
-﻿using Student_Management.DoTs;
-using Student_Management.Models;
-using System.Threading.Tasks;
+using Student_Management.DTOs;
 
-namespace Student_Management.Services
+namespace Student_Management.Services;
+
+public interface IStudentService
 {
-    public interface IStudentService
-    {
-        Task<List<Students>> GetAll();
-        Task<Students> Get(int id);
-        Task Add(StudentDTOs dto);
-        Task Update(int id, StudentDTOs dto);
-        Task Delete(int id);
-    }
+    Task<IReadOnlyList<StudentResponse>> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken);
+    Task<StudentResponse> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<StudentResponse> CreateAsync(StudentRequest request, CancellationToken cancellationToken);
+    Task<StudentResponse> UpdateAsync(int id, StudentRequest request, CancellationToken cancellationToken);
+    Task DeleteAsync(int id, CancellationToken cancellationToken);
 }

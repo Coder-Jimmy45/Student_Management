@@ -1,6 +1,36 @@
-@Student_Management_HostAddress = http://localhost:5004
+@StudentManagement_HostAddress = https://localhost:7011
+@accessToken = replace-with-token-from-login
 
-GET {{Student_Management_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register the first user
+POST {{StudentManagement_HostAddress}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "username": "portfolio-admin",
+  "password": "use-a-long-unique-password"
+}
+
+### Log in
+POST {{StudentManagement_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "portfolio-admin",
+  "password": "use-a-long-unique-password"
+}
+
+### List students
+GET {{StudentManagement_HostAddress}}/api/students?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### Create a student
+POST {{StudentManagement_HostAddress}}/api/students
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "age": 22,
+  "course": "Computer Science"
+}

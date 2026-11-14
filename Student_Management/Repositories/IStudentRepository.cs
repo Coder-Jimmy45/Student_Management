@@ -1,16 +1,13 @@
-﻿using Student_Management.Models;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+using Student_Management.Models;
 
+namespace Student_Management.Repositories;
 
-namespace Student_Management.Repositories
+public interface IStudentRepository
 {
-    public interface IStudentRepository
-    {
-        Task<List<Students>> GetAll();
-        Task<Students> GetById(int id);
-        Task Add(Students student);
-        Task Update(Students student);
-        Task Delete(Students student);
-    }
+    Task<IReadOnlyList<Student>> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken);
+    Task<Student?> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<bool> EmailExistsAsync(string email, int? excludingStudentId, CancellationToken cancellationToken);
+    Task AddAsync(Student student, CancellationToken cancellationToken);
+    Task SaveChangesAsync(CancellationToken cancellationToken);
+    void Remove(Student student);
 }

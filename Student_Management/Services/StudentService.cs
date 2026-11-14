@@ -1,61 +1,55 @@
-﻿using Student_Management.DoTs;
+using Student_Management.DTOs;
+using Student_Management.Exceptions;
 using Student_Management.Models;
 using Student_Management.Repositories;
 
-namespace Student_Management.Services
+namespace Student_Management.Services;
+
+public sealed class StudentService(IStudentRepository repository) : IStudentService
 {
-    public class StudentService : IStudentService
+    public async Task<IReadOnlyList<StudentResponse>> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken) =>
+        (await repository.GetPageAsync(page, pageSize, cancellationToken)).Select(ToResponse).ToList();
+
+    public async Task<StudentResponse> GetByIdAsync(int id, CancellationToken cancellationToken) =>
+        ToResponse(await FindStudentAsync(id, cancellationToken));
+
+    public async Task<StudentResponse> CreateAsync(StudentRequest request, CancellationToken cancellationToken)
     {
-        private readonly IStudentRepository _repo;
+        var email = NormalizeEmail(request.Email);
+        if (await repository.EmailExistsAsync(email, null, cancellationToken))
+            throw new ConflictException("A student with this email already exists.");
 
-        public StudentService(IStudentRepository repo)
-        {
-            _repo = repo;
-        }
-
-        public async Task<List<Students>> GetAll()
-        {
-            return await _repo.GetAll();
-        }
-
-        public async Task<Students> Get(int id)
-        {
-            return await _repo.GetById(id);
-        }
-
-        public async Task Add(StudentDTOs dto)
-        {
-            var student = new Students
-            {
-                Name = dto.Name,
-                Email = dto.Email,
-                Age = dto.Age,
-                Course = dto.Course,
-                CreatedDate = DateTime.Now
-            };
-
-            await _repo.Add(student);
-        }
-
-        public async Task Update(int id, StudentDTOs dto)
-        {
-            var student = await _repo.GetById(id);
-            if (student == null) throw new Exception("Student not found");
-
-            student.Name = dto.Name;
-            student.Email = dto.Email;
-            student.Age = dto.Age;
-            student.Course = dto.Course;
-
-            await _repo.Update(student);
-        }
-
-        public async Task Delete(int id)
-        {
-            var student = await _repo.GetById(id);
-            if (student == null) throw new Exception("Student not found");
-
-            await _repo.Delete(student);
-        }
+        var student = new Student { Name = request.Name.Trim(), Email = email, Age = request.Age,
+            Course = request.Course.Trim(), CreatedAtUtc = DateTime.UtcNow };
+        await repository.AddAsync(student, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
+        return ToResponse(student);
     }
+
+    public async Task<StudentResponse> UpdateAsync(int id, StudentRequest request, CancellationToken cancellationToken)
+    {
+        var student = await FindStudentAsync(id, cancellationToken);
+        var email = NormalizeEmail(request.Email);
+        if (await repository.EmailExistsAsync(email, id, cancellationToken))
+            throw new ConflictException("A student with this email already exists.");
+
+        student.Name = request.Name.Trim();
+        student.Email = email;
+        student.Age = request.Age;
+        student.Course = request.Course.Trim();
+        await repository.SaveChangesAsync(cancellationToken);
+        return ToResponse(student);
+    }
+
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken)
+    {
+        repository.Remove(await FindStudentAsync(id, cancellationToken));
+        await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<Student> FindStudentAsync(int id, CancellationToken cancellationToken) =>
+        await repository.GetByIdAsync(id, cancellationToken) ?? throw new NotFoundException("Student not found.");
+
+    private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
+    private static StudentResponse ToResponse(Student student) => new(student.Id, student.Name, student.Email, student.Age, student.Course, student.CreatedAtUtc);
 }

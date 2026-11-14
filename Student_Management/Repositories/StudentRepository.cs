@@ -1,44 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Student_Management.Data;
 using Student_Management.Models;
 
-namespace Student_Management.Repositories
+namespace Student_Management.Repositories;
+
+public sealed class StudentRepository(ApplicationDbContext context) : IStudentRepository
 {
-    public class StudentRepository : IStudentRepository
-    {
-        private readonly ApplicationDbContext _context;
+    public async Task<IReadOnlyList<Student>> GetPageAsync(int page, int pageSize, CancellationToken cancellationToken) =>
+        await context.Students.AsNoTracking().OrderBy(student => student.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
 
-        public StudentRepository(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+    public Task<Student?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
+        context.Students.SingleOrDefaultAsync(student => student.Id == id, cancellationToken);
 
-        public async Task<List<Students>> GetAll()
-        {
-            return await _context.Students.ToListAsync();
-        }
+    public Task<bool> EmailExistsAsync(string email, int? excludingStudentId, CancellationToken cancellationToken) =>
+        context.Students.AnyAsync(student => student.Email == email &&
+            (!excludingStudentId.HasValue || student.Id != excludingStudentId), cancellationToken);
 
-        public async Task<Students> GetById(int id)
-        {
-            return await _context.Students.FindAsync(id);
-        }
+    public Task AddAsync(Student student, CancellationToken cancellationToken) =>
+        context.Students.AddAsync(student, cancellationToken).AsTask();
 
-        public async Task Add(Students student)
-        {
-            await _context.Students.AddAsync(student);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task Update(Students student)
-        {
-            _context.Students.Update(student);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task Delete(Students student)
-        {
-            _context.Students.Remove(student);
-            await _context.SaveChangesAsync();
-        }
-    }
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => context.SaveChangesAsync(cancellationToken);
+    public void Remove(Student student) => context.Students.Remove(student);
 }

@@ -1,30 +1,36 @@
-﻿namespace Student_Management.Middleware
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Student_Management.Exceptions;
+
+namespace Student_Management.Middleware;
+
+public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment environment)
 {
-    public class ExceptionMiddleware
+    public async Task Invoke(HttpContext context)
     {
-
-        private readonly RequestDelegate _next;
-        private readonly ILogger<ExceptionMiddleware> _logger;
-
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+        try
         {
-            _next = next;
-            _logger = logger;
+            await next(context);
         }
-
-        public async Task Invoke(HttpContext context)
+        catch (Exception exception)
         {
-            try
+            logger.LogError(exception, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+            var (status, title) = exception switch
             {
-                await _next(context);
-            }
-            catch (Exception ex)
+                NotFoundException => (StatusCodes.Status404NotFound, "Resource not found."),
+                DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "The resource was modified by another request."),
+                ConflictException or DbUpdateException => (StatusCodes.Status409Conflict, "The request conflicts with existing data."),
+                _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+            };
+            var details = new ProblemDetails
             {
-                _logger.LogError(ex, "Error occurred");
-
-                context.Response.StatusCode = 500;
-                await context.Response.WriteAsync(ex.ToString());
-            }
+                Status = status,
+                Title = title,
+                Detail = environment.IsDevelopment() ? exception.Message : null,
+                Instance = context.Request.Path
+            };
+            context.Response.StatusCode = status;
+            await context.Response.WriteAsJsonAsync(details, cancellationToken: context.RequestAborted);
         }
     }
 }

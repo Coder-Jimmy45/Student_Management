@@ -1,59 +1,61 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using Student_Management.DTOs;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using Student_Management.Services;
 
-namespace Student_Management.Controllers
+namespace Student_Management.Controllers;
+
+[AllowAnonymous]
+[ApiController]
+[Route("api/auth")]
+public sealed class AuthController(IAuthService authService) : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    // User Registration
+    [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterRequest request,
+        CancellationToken cancellationToken)
     {
-        private readonly IConfiguration _config;
+        var result = await authService.RegisterAsync(
+            request, cancellationToken);
 
-        public AuthController(IConfiguration config)
+        if (!result)
         {
-            _config = config;
+            return Conflict(new ProblemDetails
+            {
+                Title = "Username is already in use.",
+                Status = StatusCodes.Status409Conflict
+            });
         }
 
-        [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginDTO dto)
+        return StatusCode(StatusCodes.Status201Created, new
         {
-            var username = _config["User:Username"];
-            var password = _config["User:Password"];
+            message = "User registered successfully."
+        });
+    }
 
-            if (dto.Username != username || dto.Password != password)
+    // User Login
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<TokenResponse>> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authService.LoginAsync(
+            request, cancellationToken);
+
+        if (response is null)
+        {
+            return Unauthorized(new ProblemDetails
             {
-                return Unauthorized("Invalid credentials");
-            }
-
-            var claims = new[]
-            {
-            new Claim(ClaimTypes.Name, dto.Username)
-        };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["Jwt:Key"])
-
-            );
-            if (string.IsNullOrEmpty(_config["Jwt:Key"]))
-            {
-                throw new Exception("JWT Key is missing in appsettings.json");
-            }
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(1),
-                signingCredentials: creds
-            );
-
-            return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+                Title = "Invalid username or password.",
+                Status = StatusCodes.Status401Unauthorized
+            });
         }
+
+        return Ok(response);
     }
 }
